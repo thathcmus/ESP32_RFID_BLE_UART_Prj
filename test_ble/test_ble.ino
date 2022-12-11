@@ -73,30 +73,13 @@ class MyCallbacks : public BLECharacteristicCallbacks {
           char_array[i] = rxValue[i];          
       }
       char_array[rxValue.length()] = NULL;
-      Serial.println();
-      Serial.println("Char: ");
-      Serial.print(char_array);
 
        for (int i = 0; char_array[i] != NULL ; i++) {
             pass_correct[i] = char_array[i];
             pass_correct[i+1] = NULL;
       }
-      // strncpy(pass_correct, char_array, 4);
-      if(pass_correct == char_array)
-      {
-        Serial.println("Password is Tung");
-      }
     }
     if (uuid.toString() == CHARACTERISTIC_UUID_PASS) {
-      if (rxValue.length() > 0) {
-        Serial.println("*********");
-        Serial.print("Received Value: ");
-
-        for (int i = 0; i < rxValue.length(); i++) {
-          Serial.print(rxValue[i]);
-        }
-        Serial.println();
-
         if (pass_correct == rxValue) {
           Serial.println("Pass correct, open door");
           txValue = 1.1;
@@ -112,12 +95,6 @@ class MyCallbacks : public BLECharacteristicCallbacks {
           pCharacteristic->notify();            // Send the value to the app!
           digitalWrite(LED, LOW);
         }
-      }
-
-
-
-      Serial.println();
-      Serial.println("*********");
     }
   }
 };
@@ -193,11 +170,4 @@ void loop() {
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
   }
-
-  Serial.println("Pass now: ");
-  // for (int i = 0; i < pass_correct.length(); i++) {
-  //         Serial.print(pass_correct[i]);
-  //     }
-  Serial.println(pass_correct);
-
 }
