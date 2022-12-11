@@ -56,6 +56,13 @@ class MyCallbacks : public BLECharacteristicCallbacks {
         pCharacteristic->setValue(txString);  // Sending  message
         pCharacteristic->notify();            // Send the value to the app!
       }
+      else
+      {
+        txValue = 0.0;
+        dtostrf(txValue, 1, 1, txString);
+        pCharacteristic->setValue(txString);  // Sending  message
+        pCharacteristic->notify();            // Send the value to the app!
+      }
     }
   
     if(uuid.toString() == CHARACTERISTIC_UUID_CHANGE_PASS)
