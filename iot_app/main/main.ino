@@ -13,9 +13,8 @@ float txValue = 0.0;  // 0.0 is incorrect, 1.1 is correct
 const int LED = 2;    // Could be different depending on the dev board. I used the DOIT ESP32 dev board.
 // Password for the door
 char pass_correct[] = "Tung123";
-// String pass_correct = String("Tung123");
-char verify[] = "verify";
-char change_pass[] = "change_pass";
+String cmd;
+char passwordTemp[] ="" ;
 char txString[8];
 
 
@@ -149,8 +148,110 @@ void setup() {
   Serial.println("Waiting a client connection to notify...");
 }
 
-void loop() {
 
+void getPassToOPenDoor() {
+  Serial.println("=================================================================");
+  Serial.print("Type Your Password:");
+  for(int i = 1; i<= 3; i++)
+    {
+      while (Serial.available() == 0) {}     //wait for data available
+      cmd = Serial.readString(); 
+      cmd.trim();  
+      cmd.toCharArray(passwordTemp,cmd.length() + 1);
+      Serial.println(passwordTemp);
+      if(strcmp(pass_correct,passwordTemp)){
+          Serial.print("\t\t\tWRONG PASSWORD: ");
+          Serial.println(i);
+          if(i<3)
+          {
+          Serial.print("Type Your Password Again:");
+          }else{
+            Serial.println("=================================================================");
+            Serial.println("\t\t\tWARNING!!!");
+          }
+      }else{
+          digitalWrite(LED, HIGH);
+          Serial.println("\t\t\tYOUR DOOR IS OPENED");
+          break;
+      }
+    }
+}
+
+void changePass(){
+      Serial.print("Type your old Password: ");
+       for(int i = 1;i <= 3; i++){
+           while (Serial.available() == 0) {}  
+            cmd = Serial.readString(); 
+            cmd.trim();
+            cmd.toCharArray(passwordTemp,cmd.length() + 1);
+            Serial.println(cmd);
+            if(strcmp(passwordTemp,pass_correct))
+              {
+                  Serial.print("\t\t\tWRONG PASSWORD: ");
+                  Serial.println(i);
+                  if(i<3){
+                  Serial.println("=================================================================");
+                  Serial.print("Type your old Password again: ");
+                  }
+                  else{
+                  Serial.println("=================================================================");
+                  Serial.println("\t\t\tWARNING!!!");
+                  }
+              }
+            else{
+                  Serial.print("Type your new Password: ");
+                  while (Serial.available() == 0) {}  
+                  cmd = Serial.readString(); 
+                  cmd.trim();
+                  cmd.toCharArray(passwordTemp,cmd.length() + 1);
+                  Serial.println(passwordTemp);
+                  strcpy(pass_correct,passwordTemp);
+                  Serial.println("\t\tCHANGE YOUR NEW PASSWORD SUCCESS");
+                  break;
+            }
+      }
+}
+
+void closeDoor(){
+    Serial.println("=================================================================");
+    digitalWrite(LED, LOW);
+    Serial.println("\t\t\tYOUR DOOR IS CLOSED");
+}
+
+void loop() {
+//============================================UART=========================================//
+  Serial.println("=================================================================");
+  Serial.println("\t\t1.Type password to open your door");
+  Serial.println("\t\t2.Change your password");
+  Serial.println("\t\t3.Close your door");
+  Serial.print("\t\tEnter your choose:");
+  while (Serial.available() == 0) {}     //wait for data available
+  cmd = Serial.readString();
+  cmd.trim(); 
+  Serial.println(cmd);   
+   if(cmd == "1")
+  {
+    getPassToOPenDoor();
+  }
+  else if(cmd == "2")
+  {
+    changePass();
+  }else if(cmd == "3")
+  {
+    closeDoor();
+  }
+//============================================UART=========================================//
+
+
+
+
+
+
+
+
+
+
+//============================================BLE=========================================//
   if (deviceConnected) {
     Serial.println("Connected device");
   }
@@ -170,4 +271,5 @@ void loop() {
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
   }
+//============================================BLE=========================================//
 }
