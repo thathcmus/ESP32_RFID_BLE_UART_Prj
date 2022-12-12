@@ -27,7 +27,7 @@ String cmd;
 
 //Variables
 // #ifdef nuidPICC
-byte nuidPICC[4] = { 0, 0, 0, 0 };
+byte nuidPICC[4] = { 0x93, 0xAC, 0x76, 0xA3 };
 byte nuidPICC_[4] = { 0, 0, 0, 0 };
 // endif
 
@@ -66,22 +66,108 @@ void setup() {
   rfid.PCD_DumpVersionToSerial();
 }
 
+void runRFID() {
+  // if(nuidPICC[0] == 0 && nuidPICC[1] == 0 && nuidPICC[2] == 0 && nuidPICC[3] == 0)
+  // {
+  //   Serial.println(F("Let's scan first card!"));
+  //   if (rfid.PICC_IsNewCardPresent())
+  //     if (rfid.PICC_ReadCardSerial())
+  //     {
+  //       nuidPICC[0] = rfid.uid.uidByte[0];
+  //       nuidPICC[1] = rfid.uid.uidByte[1];
+  //       nuidPICC[2] = rfid.uid.uidByte[2];
+  //       nuidPICC[3] = rfid.uid.uidByte[3];
+  //     }
+  // }
+  // if (!rfid.PICC_IsNewCardPresent())
+  //   return;
+  // if (!rfid.PICC_ReadCardSerial())
+  //   return;
+//  if (rfid.PICC_IsNewCardPresent())
+//       if (rfid.PICC_ReadCardSerial())
+//       {
+//         nuidPICC[0] = rfid.uid.uidByte[0];
+//         nuidPICC[1] = rfid.uid.uidByte[1];
+//         nuidPICC[2] = rfid.uid.uidByte[2];
+//         nuidPICC[3] = rfid.uid.uidByte[3];
+//       }
+
+//  if (rfid.PICC_IsNewCardPresent()) { // new tag is available
+//     if (rfid.PICC_ReadCardSerial()) { // NUID has been readed
+//       Serial.print("UID:");
+//       for (int i = 0; i < rfid.uid.size; i++) {
+//         Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+//         Serial.print(rfid.uid.uidByte[i], HEX);
+//       }
+//       Serial.println();
+//       rfid.PICC_HaltA(); // halt PICC
+//       rfid.PCD_StopCrypto1(); // stop encryption on PCD
+//     }
+//   }
+
+
+//   if(rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3])
+//   {
+//     for (byte i = 0; i < 4; i++) {
+//       Serial.print(nuidPICC[i] < 0x10 ? " 0" : " ");
+//       Serial.print(nuidPICC[i], DEC);
+//     }
+//     Serial.println(F("\nCorrect card -> The door opened!"));
+//     digitalWrite(LED_PIN, HIGH);
+//     delay(5000);
+//     Serial.println(F("The door closed!"));
+//   }
+
+//   else {
+//     Serial.println(F("Incorrect card -> The door is still closed!!!"));
+//   }
+//   digitalWrite(LED_PIN, LOW);
+
+if (rfid.PICC_IsNewCardPresent()) { // new tag is available
+    if (rfid.PICC_ReadCardSerial()) { // NUID has been readed
+
+      // print UID in Serial Monitor in the hex format
+      Serial.print("UID:");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+      }
+      Serial.println();
+
+      rfid.PICC_HaltA(); // halt PICC
+      rfid.PCD_StopCrypto1(); // stop encryption on PCD
+
+        if(rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3])
+        {
+        Serial.println(F("\nCorrect card -> The door opened!"));
+        digitalWrite(LED_PIN, HIGH);
+        delay(5000);
+        Serial.println(F("The door closed!"));
+        } else {
+         Serial.println(F("Incorrect card -> The door is still closed!!!"));
+        }
+        digitalWrite(LED_PIN, LOW);
+        }
+  }
+}
 
 
 void loop() {
-  Serial.println(F("\n================================================\nLet's scan!"));
-  Serial.println(F("If you want to change card. Let's input '0' in anytime!"));
-  cmd = Serial.readString();
-  cmd.trim();
+  // Serial.println(F("\n================================================\nLet's scan!"));
+  // Serial.println(F("If you want to change card. Let's input '0' in anytime!"));
+  // cmd = Serial.readString();
+  // cmd.trim();
   // Serial.println(cmd);
-  while(cmd == "0")
-  {
-      changeCard();
-      break;
-  }
-  cmd = " ";
+  // while(cmd == "0")
+  //     {
+  //     changeCard();
+  //     break;
+  //     }
+  // cmd = " ";
   runRFID();
+    
 }
+
 void changeCard()
 {
   
@@ -117,40 +203,3 @@ void changeCard()
   Serial.println(F("Changed to New Card!"));
 }
 //Read NUID and Run features.
-void runRFID() {
-  if(nuidPICC[0] == 0 && nuidPICC[1] == 0 && nuidPICC[2] == 0 && nuidPICC[3] == 0)
-  {
-    Serial.println(F("Let's scan first card!"));
-    if (rfid.PICC_IsNewCardPresent())
-      if (rfid.PICC_ReadCardSerial())
-      {
-        nuidPICC[0] = rfid.uid.uidByte[0];
-        nuidPICC[1] = rfid.uid.uidByte[1];
-        nuidPICC[2] = rfid.uid.uidByte[2];
-        nuidPICC[3] = rfid.uid.uidByte[3];
-      }
-  }
-  if (!rfid.PICC_IsNewCardPresent())
-    return;
-  if (!rfid.PICC_ReadCardSerial())
-    return;
-
-  if(rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3])
-  {
-    for (byte i = 0; i < 4; i++) {
-      Serial.print(nuidPICC[i] < 0x10 ? " 0" : " ");
-      Serial.print(nuidPICC[i], DEC);
-    }
-    Serial.println(F("\nCorrect card -> The door opened!"));
-    digitalWrite(LED_PIN, HIGH);
-    delay(5000);
-    Serial.println(F("The door closed!"));
-  }
-
-  else {
-    Serial.println(F("Incorrect card -> The door is still closed!!!"));
-  }
-  digitalWrite(LED_PIN, LOW);
-
-  
-}
