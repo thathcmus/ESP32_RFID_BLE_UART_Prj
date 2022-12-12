@@ -1,28 +1,40 @@
+/* Includes ----------------------------------------------------------- */
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+/* Private defines ---------------------------------------------------- */
+#define SERVICE_UUID                        "844fc6d6-1c7e-461a-abb9-3a9a9fdd597e" 
+#define CHARACTERISTIC_UUID_PASS            "909aa990-1e33-4bf6-bfbd-11efd5b571a4"
+#define CHARACTERISTIC_UUID_CHECK           "80a80bef-ea4c-426f-885a-5c0a34757a54"
+#define CHARACTERISTIC_UUID_VERIFY          "0515e27d-dd91-4f96-9452-5f43649c1819"
+#define CHARACTERISTIC_UUID_CHANGE_PASS     "688091db-1736-4179-b7ce-e42a724a6a68"
+#define LED  2
+
+/* Private macros ----------------------------------------------------- */
+
+/* Public variables --------------------------------------------------- */
 BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic;
-
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
-float txValue = 0.0; // 0.0 is incorrect, 1.1 is correct
-const int LED = 2;   // Could be different depending on the dev board. I used the DOIT ESP32 dev board.
+// 0.0 is incorrect, 1.1 is correct
+float txValue = 0.0; 
+
 // Password for the door
-char pass_correct[] = "Tung123";
-String cmd;
+char pass_correct[] = "Iot123";
 char passwordTemp[] = "";
 char txString[8];
+String cmd;
 
-#define SERVICE_UUID "844fc6d6-1c7e-461a-abb9-3a9a9fdd597e" // UART service UUID
-#define CHARACTERISTIC_UUID_PASS "909aa990-1e33-4bf6-bfbd-11efd5b571a4"
-#define CHARACTERISTIC_UUID_CHECK "80a80bef-ea4c-426f-885a-5c0a34757a54"
-#define CHARACTERISTIC_UUID_VERIFY "0515e27d-dd91-4f96-9452-5f43649c1819"
-#define CHARACTERISTIC_UUID_CHANGE_PASS "688091db-1736-4179-b7ce-e42a724a6a68"
+/* Private function prototypes ---------------------------------------- */
 
+/* Function definitions ----------------------------------------------- */
+/**
+ * @brief BLE server callback
+ */
 class MyServerCallbacks : public BLEServerCallbacks
 {
   void onConnect(BLEServer *pServer)
@@ -36,13 +48,15 @@ class MyServerCallbacks : public BLEServerCallbacks
   }
 };
 
+/**
+ * @brief BLE characteristic callback
+ */
 class MyCallbacks : public BLECharacteristicCallbacks
 {
   void onRead(BLECharacteristic *pCharacteristic)
   {
-    char txString[8];                 // make sure this is big enuffz
-    dtostrf(txValue, 1, 1, txString); // float_val, min_width, digits_after_decimal, char_buffer
-
+    char txString[8];                
+    dtostrf(txValue, 1, 1, txString); 
     pCharacteristic->setValue(txString);
   }
 
@@ -51,6 +65,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
     BLEUUID uuid = pCharacteristic->getUUID();
     std::string rxValue = pCharacteristic->getValue();
 
+    // CHARACTERISTIC_UUID_VERIFY    
     if (uuid.toString() == CHARACTERISTIC_UUID_VERIFY)
     {
       if (pass_correct == rxValue)
@@ -69,12 +84,12 @@ class MyCallbacks : public BLECharacteristicCallbacks
       }
     }
 
+    // CHARACTERISTIC_UUID_CHANGE_PASS
     if (uuid.toString() == CHARACTERISTIC_UUID_CHANGE_PASS)
     {
       char char_array[rxValue.length()];
       for (int i = 0; i < rxValue.length(); i++)
       {
-        Serial.print(rxValue[i]);
         char_array[i] = rxValue[i];
       }
       char_array[rxValue.length()] = NULL;
@@ -85,11 +100,12 @@ class MyCallbacks : public BLECharacteristicCallbacks
         pass_correct[i + 1] = NULL;
       }
     }
+
+    // CHARACTERISTIC_UUID_PASS
     if (uuid.toString() == CHARACTERISTIC_UUID_PASS)
     {
       if (pass_correct == rxValue)
       {
-        Serial.println("Pass correct, open door");
         txValue = 1.1;
         dtostrf(txValue, 1, 1, txString);
         pCharacteristic->setValue(txString); // Sending  message
@@ -98,7 +114,6 @@ class MyCallbacks : public BLECharacteristicCallbacks
       }
       else
       {
-        Serial.println("Pass incorrect, cannot open door");
         txValue = 0.0;
         dtostrf(txValue, 1, 1, txString);
         pCharacteristic->setValue(txString); // Sending  message
@@ -109,54 +124,9 @@ class MyCallbacks : public BLECharacteristicCallbacks
   }
 };
 
-void setup()
-{
-  Serial.begin(115200);
-
-  pinMode(LED, OUTPUT);
-
-  // Create the BLE Device
-  BLEDevice::init("ESP32"); // Give it a name
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_CHECK,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
-
-  pCharacteristic->addDescriptor(new BLE2902());
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  pCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_PASS,
-      BLECharacteristic::PROPERTY_WRITE);
-
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  pCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_VERIFY,
-      BLECharacteristic::PROPERTY_WRITE);
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  pCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_CHANGE_PASS,
-      BLECharacteristic::PROPERTY_WRITE);
-  pCharacteristic->setCallbacks(new MyCallbacks());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  pServer->getAdvertising()->start();
-  Serial.println("Waiting a client connection to notify...");
-}
-
+/**
+ * @brief Type your password to open door
+ */
 void getPassToOPenDoor()
 {
   Serial.println("=================================================================");
@@ -193,6 +163,9 @@ void getPassToOPenDoor()
   }
 }
 
+/**
+ * @brief Type your new password to change password
+ */
 void changePass()
 {
   Serial.print("Type your old Password: ");
@@ -237,6 +210,9 @@ void changePass()
   }
 }
 
+/**
+ * @brief Close the door
+ */
 void closeDoor()
 {
   Serial.println("=================================================================");
@@ -244,55 +220,113 @@ void closeDoor()
   Serial.println("\t\t\tYOUR DOOR IS CLOSED");
 }
 
-void loop()
+/* Set up ------------------------------------------------------------- */
+void setup()
 {
-  //============================================UART=========================================//
-  Serial.println("================================================================="); // another function
+  Serial.begin(115200);
+
+  pinMode(LED, OUTPUT);
+
+  // Create the BLE Device
+  BLEDevice::init("ESP32"); // Give it a name
+
+  // Create the BLE Server
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  // Create a BLE Characteristic to check correct password
+  pCharacteristic = pService->createCharacteristic( CHARACTERISTIC_UUID_CHECK,
+                                                    BLECharacteristic::PROPERTY_READ | 
+                                                    BLECharacteristic::PROPERTY_NOTIFY);
+  pCharacteristic->addDescriptor(new BLE2902());
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Create a BLE Characteristic to send password
+  pCharacteristic = pService->createCharacteristic( CHARACTERISTIC_UUID_PASS,
+                                                    BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Create a BLE Characteristic to verify password
+  pCharacteristic = pService->createCharacteristic( CHARACTERISTIC_UUID_VERIFY,
+                                                    BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Create a BLE Characteristic to change password
+  pCharacteristic = pService->createCharacteristic( CHARACTERISTIC_UUID_CHANGE_PASS,
+                                                    BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  pServer->getAdvertising()->start();
+  Serial.println("Waiting a client connection to notify...");
+}
+
+/**
+ * @brief Display as a menu to choose some features
+ */
+void dashboard()
+{
+  Serial.println("================================================================="); 
   Serial.println("\t\t1.Type password to open your door");
   Serial.println("\t\t2.Change your password");
   Serial.println("\t\t3.Close your door");
   Serial.print("\t\tEnter your choose:");
+}
+
+/* Main loop ---------------------------------------------------------- */
+void loop()
+{
+  //============================================UART=========================================//
+  dashboard(); // Display feature to choose
   while (Serial.available() == 0)
   {
-  } // wait for data available
+    // wait for data available
+  } 
   cmd = Serial.readString();
   cmd.trim();
   Serial.println(cmd);
-  if (cmd == "1")
+  
+  if (cmd == "1") // Case 1: type your password to open door
   {
     getPassToOPenDoor();
   }
-  else if (cmd == "2")
+  else if (cmd == "2") // Case 2: type your new password to change password
   {
     changePass();
   }
-  else if (cmd == "3")
+  else if (cmd == "3") // Case 3: close the door
   {
     closeDoor();
   }
   //============================================UART=========================================//
 
   //============================================BLE=========================================//
+  // BLE connected
   if (deviceConnected)
   {
-    Serial.println("Connected device"); // clean
+    // TO DO
   }
   delay(1000);
 
-  // disconnecting
+  // BLE disconnecting
   if (!deviceConnected && oldDeviceConnected)
   {
-    Serial.println("Disconnecting ...");
-    delay(500);                  // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    Serial.println("Start advertising");
+    // restart advertising
+    pServer->startAdvertising(); 
     oldDeviceConnected = deviceConnected;
   }
 
-  // connecting
+  // BLE connecting
   if (deviceConnected && !oldDeviceConnected)
   {
     oldDeviceConnected = deviceConnected;
   }
   //============================================BLE=========================================//
 }
+/* End of file -------------------------------------------------------- */
