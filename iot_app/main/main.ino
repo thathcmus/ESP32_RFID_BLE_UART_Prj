@@ -3,6 +3,11 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+//Include for RFID
+#include <SPI.h>      //https://www.arduino.cc/en/reference/SPI
+#include "MFRC522.h"  //https://github.com/miguelbalboa/rfid
+
+
 
 BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic;
@@ -22,6 +27,32 @@ char txString[8];
 #define CHARACTERISTIC_UUID_CHECK "80a80bef-ea4c-426f-885a-5c0a34757a54"
 #define CHARACTERISTIC_UUID_VERIFY "0515e27d-dd91-4f96-9452-5f43649c1819"
 #define CHARACTERISTIC_UUID_CHANGE_PASS "688091db-1736-4179-b7ce-e42a724a6a68"
+
+//Define RFID PIN.
+#define SS_PIN 5
+#define RST_PIN 4
+
+//There are 3 cards, The WHITE_CARD and BLUE_CARD_1 are the correct cards. Another card (non-define) are incorrect cards.
+//You can change by define or non-define
+#define WHITE_CARD
+#define BLUE_CARD_1
+//#define BLUE_CARD_2
+
+//NUID cards
+#ifdef WHITE_CARD
+byte white_card[4] = { 161, 64, 42, 29 };
+#endif
+
+#ifdef BLUE_CARD_1
+byte blue_card_1[4] = { 51, 190, 251, 182};
+#endif
+
+#ifdef BLUE_CARD_2
+byte blue_card_2[4] = { 58, 40, 69, 41 };
+#endif
+
+MFRC522::MIFARE_Key key;
+MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
@@ -112,9 +143,16 @@ class MyCallbacks : public BLECharacteristicCallbacks
 void setup()
 {
   Serial.begin(115200);
-
+  Serial.println(F("Initialize System"));
   pinMode(LED, OUTPUT);
-
+  
+  //Init RFID with SPI
+  SPI.begin();
+  rfid.PCD_Init();
+  //Show Firmware Version: Confirm RFID are connected to ESP32
+  Serial.print(F("Reader :"));
+  rfid.PCD_DumpVersionToSerial();
+  
   // Create the BLE Device
   BLEDevice::init("ESP32"); // Give it a name
 
@@ -237,6 +275,53 @@ void changePass()
   }
 }
 
+//Read NUID and Run features.
+void runRFID() {
+  // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+  if (!rfid.PICC_IsNewCardPresent())
+    return;
+
+  // Verify if the NUID has been readed
+  if (!rfid.PICC_ReadCardSerial())
+    return;
+
+  if (
+#ifdef WHITE_CARD
+    (rfid.uid.uidByte[0] == white_card[0] 
+    && rfid.uid.uidByte[1] == white_card[1] 
+    && rfid.uid.uidByte[2] == white_card[2] 
+    && rfid.uid.uidByte[3] == white_card[3])
+#endif
+    
+#ifdef BLUE_CARD_1
+    ||
+    (rfid.uid.uidByte[0] == blue_card_1[0] 
+    && rfid.uid.uidByte[1] == blue_card_1[1] 
+    && rfid.uid.uidByte[2] == blue_card_1[2] 
+    && rfid.uid.uidByte[3] == blue_card_1[3])
+#endif
+    
+#ifdef BLUE_CARD_2
+    ||
+    (rfid.uid.uidByte[0] == blue_card_2[0] 
+    && rfid.uid.uidByte[1] == blue_card_2[1] 
+    && rfid.uid.uidByte[2] == blue_card_2[2] 
+    && rfid.uid.uidByte[3] == blue_card_2[3])
+#endif
+    ) 
+  {
+    Serial.println(F("Correct card -> The door opened!"));
+    digitalWrite(LED_PIN, HIGH);
+    delay(5000);
+    Serial.println(F("The door closed!"));
+  }
+
+  else {
+    Serial.println(F("Incorrect card -> The door is still closed!!!"));
+  }
+  digitalWrite(LED_PIN, LOW);
+}
+
 void closeDoor()
 {
   Serial.println("=================================================================");
@@ -295,4 +380,8 @@ void loop()
     oldDeviceConnected = deviceConnected;
   }
   //============================================BLE=========================================//
+  
+  //============================================RFID=========================================//
+  runRFID();
+  //============================================RFID=========================================//
 }
