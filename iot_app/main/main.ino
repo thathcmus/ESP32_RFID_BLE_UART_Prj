@@ -311,7 +311,7 @@ void runRFID() {
     ) 
   {
     Serial.println(F("Correct card -> The door opened!"));
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED, HIGH);
     delay(5000);
     Serial.println(F("The door closed!"));
   }
@@ -319,7 +319,7 @@ void runRFID() {
   else {
     Serial.println(F("Incorrect card -> The door is still closed!!!"));
   }
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(LED, LOW);
 }
 
 void closeDoor()
