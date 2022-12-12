@@ -17,23 +17,31 @@ LED (DOOR)                          <-> D27
 #define RST_PIN 4
 #define LED_PIN 27
 
-#define WHITE_CARD
-#define BLUE_CARD_1
+// #define nuidPICC
+// #define WHITE_CARD
+// #define BLUE_CARD_1
 // #define BLUE_CARD_2
 
+static int corr_checked = 0;
+String cmd;
+
 //Variables
+// #ifdef nuidPICC
 byte nuidPICC[4] = { 0, 0, 0, 0 };
-#ifdef WHITE_CARD
-byte white_card[4] = { 161, 64, 42, 29 };
-#endif
+byte nuidPICC_[4] = { 0, 0, 0, 0 };
+// endif
 
-#ifdef BLUE_CARD_1
-byte blue_card_1[4] = { 51, 190, 251, 182};
-#endif
+// #ifdef WHITE_CARD
+// byte white_card[4] = { 161, 64, 42, 29 };
+// #endif
 
-#ifdef BLUE_CARD_2
-byte blue_card_2[4] = { 58, 40, 69, 41 };
-#endif
+// #ifdef BLUE_CARD_1
+// byte blue_card_1[4] = { 51, 190, 251, 182 };
+// #endif
+
+// #ifdef BLUE_CARD_2
+// byte blue_card_2[4] = { 58, 40, 69, 41 };
+// #endif
 
 MFRC522::MIFARE_Key key;
 MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
@@ -53,7 +61,7 @@ void setup() {
   //Init RFID with SPI
   SPI.begin();
   rfid.PCD_Init();
-  //Show infomation
+  //Show Firmware Version: Confirm RFID are connected to ESP32
   Serial.print(F("Reader :"));
   rfid.PCD_DumpVersionToSerial();
 }
@@ -61,46 +69,79 @@ void setup() {
 
 
 void loop() {
-  // readRFID();
+  Serial.println(F("\n================================================\nLet's scan!"));
+  Serial.println(F("If you want to change card. Let's input '0' in anytime!"));
+  cmd = Serial.readString();
+  cmd.trim();
+  // Serial.println(cmd);
+  while(cmd == "0")
+  {
+      changeCard();
+      break;
+  }
+  cmd = " ";
   runRFID();
 }
+void changeCard()
+{
+  
+  while(nuidPICC_[0] != nuidPICC[0] && nuidPICC_[1] != nuidPICC[1] && nuidPICC_[2] != nuidPICC[2] && nuidPICC_[3] != nuidPICC[3])
+  {
+    if (rfid.PICC_IsNewCardPresent())
+      if (rfid.PICC_ReadCardSerial())
+      {
+        nuidPICC_[0] = rfid.uid.uidByte[0];
+        nuidPICC_[1] = rfid.uid.uidByte[1];
+        nuidPICC_[2] = rfid.uid.uidByte[2];
+        nuidPICC_[3] = rfid.uid.uidByte[3];
+      }
 
+    if(nuidPICC_[0] != nuidPICC[0] && nuidPICC_[1] != nuidPICC[1] && nuidPICC_[2] != nuidPICC[2] && nuidPICC_[3] != nuidPICC[3])
+      Serial.println(F("Let's scan recent card!"));
+  }
+
+  while(nuidPICC_[0] == nuidPICC[0] && nuidPICC_[1] == nuidPICC[1] && nuidPICC_[2] == nuidPICC[2] && nuidPICC_[3] == nuidPICC[3])
+  {
+    if (rfid.PICC_IsNewCardPresent())
+      if (rfid.PICC_ReadCardSerial())
+      {
+        nuidPICC[0] = rfid.uid.uidByte[0];
+        nuidPICC[1] = rfid.uid.uidByte[1];
+        nuidPICC[2] = rfid.uid.uidByte[2];
+        nuidPICC[3] = rfid.uid.uidByte[3];
+      }
+
+    if(nuidPICC_[0] == nuidPICC[0] && nuidPICC_[1] == nuidPICC[1] && nuidPICC_[2] == nuidPICC[2] && nuidPICC_[3] == nuidPICC[3])
+      Serial.println(F("Let's scan new card!"));
+  }
+  Serial.println(F("Changed to New Card!"));
+}
 //Read NUID and Run features.
 void runRFID() {
-  // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+  if(nuidPICC[0] == 0 && nuidPICC[1] == 0 && nuidPICC[2] == 0 && nuidPICC[3] == 0)
+  {
+    Serial.println(F("Let's scan first card!"));
+    if (rfid.PICC_IsNewCardPresent())
+      if (rfid.PICC_ReadCardSerial())
+      {
+        nuidPICC[0] = rfid.uid.uidByte[0];
+        nuidPICC[1] = rfid.uid.uidByte[1];
+        nuidPICC[2] = rfid.uid.uidByte[2];
+        nuidPICC[3] = rfid.uid.uidByte[3];
+      }
+  }
   if (!rfid.PICC_IsNewCardPresent())
     return;
-
-  // Verify if the NUID has been readed
   if (!rfid.PICC_ReadCardSerial())
     return;
 
-  if (
-#ifdef WHITE_CARD
-    (rfid.uid.uidByte[0] == white_card[0] 
-    && rfid.uid.uidByte[1] == white_card[1] 
-    && rfid.uid.uidByte[2] == white_card[2] 
-    && rfid.uid.uidByte[3] == white_card[3])
-#endif
-    
-#ifdef BLUE_CARD_1
-    ||
-    (rfid.uid.uidByte[0] == blue_card_1[0] 
-    && rfid.uid.uidByte[1] == blue_card_1[1] 
-    && rfid.uid.uidByte[2] == blue_card_1[2] 
-    && rfid.uid.uidByte[3] == blue_card_1[3])
-#endif
-    
-#ifdef BLUE_CARD_2
-    ||
-    (rfid.uid.uidByte[0] == blue_card_2[0] 
-    && rfid.uid.uidByte[1] == blue_card_2[1] 
-    && rfid.uid.uidByte[2] == blue_card_2[2] 
-    && rfid.uid.uidByte[3] == blue_card_2[3])
-#endif
-    ) 
+  if(rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3])
   {
-    Serial.println(F("Correct card -> The door opened!"));
+    for (byte i = 0; i < 4; i++) {
+      Serial.print(nuidPICC[i] < 0x10 ? " 0" : " ");
+      Serial.print(nuidPICC[i], DEC);
+    }
+    Serial.println(F("\nCorrect card -> The door opened!"));
     digitalWrite(LED_PIN, HIGH);
     delay(5000);
     Serial.println(F("The door closed!"));
@@ -110,4 +151,6 @@ void runRFID() {
     Serial.println(F("Incorrect card -> The door is still closed!!!"));
   }
   digitalWrite(LED_PIN, LOW);
+
+  
 }
