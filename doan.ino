@@ -17,7 +17,7 @@ void loop() {
   while (Serial.available() == 0) {}     //wait for data available
   cmd = Serial.readString();
   cmd.trim(); 
-  Serial.println(cmd);                     g
+  Serial.println(cmd);                   
 
 
   if(cmd == "1")
@@ -32,10 +32,6 @@ void loop() {
     closeDoor();
   }
  
-}
-
-void convertCharToString(){
-
 }
 
 void getPassToOPenDoor() {
