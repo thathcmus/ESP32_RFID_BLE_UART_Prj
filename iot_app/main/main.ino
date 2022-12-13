@@ -4,6 +4,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <SPI.h>     
+#include "MFRC522.h"  
 
 /* Private defines ---------------------------------------------------- */
 #define SERVICE_UUID                        "844fc6d6-1c7e-461a-abb9-3a9a9fdd597e" 
@@ -11,6 +13,8 @@
 #define CHARACTERISTIC_UUID_CHECK           "80a80bef-ea4c-426f-885a-5c0a34757a54"
 #define CHARACTERISTIC_UUID_VERIFY          "0515e27d-dd91-4f96-9452-5f43649c1819"
 #define CHARACTERISTIC_UUID_CHANGE_PASS     "688091db-1736-4179-b7ce-e42a724a6a68"
+#define SS_PIN 5
+#define RST_PIN 4
 #define LED  2
 
 /* Private macros ----------------------------------------------------- */
@@ -28,6 +32,13 @@ char pass_correct[] = "Iot123";
 char passwordTemp[] = "";
 char txString[8];
 String cmd;
+
+// RFID
+byte nuidPICC[4] = { 0x93, 0xAC, 0x76, 0xA3 };
+bool have_change = false;
+bool have_scan = false; 
+MFRC522::MIFARE_Key key;
+MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
 
 /* Private function prototypes ---------------------------------------- */
 
@@ -161,6 +172,7 @@ void getPassToOPenDoor()
       break;
     }
   }
+  dashboard();
 }
 
 /**
@@ -208,6 +220,7 @@ void changePass()
       break;
     }
   }
+  dashboard();
 }
 
 /**
@@ -218,6 +231,95 @@ void closeDoor()
   Serial.println("=================================================================");
   digitalWrite(LED, LOW);
   Serial.println("\t\t\tYOUR DOOR IS CLOSED");
+  dashboard();
+}
+
+/**
+ * @brief Check id from card, if correct, it will open door
+ */
+void runRFID() {
+  if (rfid.PICC_IsNewCardPresent()) {  // new tag is available
+    if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
+
+      // print UID in Serial Monitor in the hex format
+      Serial.print("UID:");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+      }
+      Serial.println();
+
+      rfid.PICC_HaltA();       // halt PICC
+      rfid.PCD_StopCrypto1();  // stop encryption on PCD
+
+      if (rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3]) {
+        Serial.println(F("\nCorrect card -> The door opened!"));
+        digitalWrite(LED, HIGH);
+        delay(5000);
+        Serial.println(F("The door closed!"));
+      } else {
+        Serial.println(F("Incorrect card -> The door is still closed!!!"));
+      }
+      digitalWrite(LED, LOW);
+    }
+  }
+}
+
+/**
+ * @brief Check id from card, if correct, it will allow change new card
+ */
+void changeCard() {
+  Serial.println(F("Changed to new card!"));
+  have_change = true;
+  while(have_change){
+     if (rfid.PICC_IsNewCardPresent()) {  // new tag is available
+    if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
+
+      // print UID in Serial Monitor in the hex format
+      Serial.print("UID:");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+      }
+      Serial.println();
+
+      rfid.PICC_HaltA();       // halt PICC
+      rfid.PCD_StopCrypto1();  // stop encryption on PCD
+
+      if (rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3]) {
+        Serial.println(F("\nCorrect card -> Change card!"));
+        have_scan = true;
+      } else {
+        Serial.println(F("Incorrect card -> Cannot change card!!!"));
+        have_scan = false;
+      }
+      have_change = false;
+    }
+  }
+  }
+
+  while(have_scan)
+  {
+    if (rfid.PICC_IsNewCardPresent()) {  // new tag is available
+    if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
+
+      // print UID in Serial Monitor in the hex format
+      Serial.print("UID:");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+        nuidPICC[i] = rfid.uid.uidByte[i];       
+      }
+      Serial.println();
+
+      rfid.PICC_HaltA();       // halt PICC
+      rfid.PCD_StopCrypto1();  // stop encryption on PCD
+      Serial.println("Done change !!!");  
+      have_scan = false;    
+    }
+  }
+  }
+  dashboard();
 }
 
 /* Set up ------------------------------------------------------------- */
@@ -226,6 +328,10 @@ void setup()
   Serial.begin(115200);
 
   pinMode(LED, OUTPUT);
+
+  // Init RFID with SPI
+  SPI.begin();
+  rfid.PCD_Init();  
 
   // Create the BLE Device
   BLEDevice::init("ESP32"); // Give it a name
@@ -265,6 +371,7 @@ void setup()
   // Start advertising
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
+  dashboard();
 }
 
 /**
@@ -276,18 +383,18 @@ void dashboard()
   Serial.println("\t\t1.Type password to open your door");
   Serial.println("\t\t2.Change your password");
   Serial.println("\t\t3.Close your door");
+  Serial.println("\t\t4.Change RFID card");
   Serial.print("\t\tEnter your choose:");
 }
 
 /* Main loop ---------------------------------------------------------- */
 void loop()
 {
+  //============================================RFID=========================================//
+  runRFID(); 
+  //============================================RFID=========================================//
+  
   //============================================UART=========================================//
-  dashboard(); // Display feature to choose
-  while (Serial.available() == 0)
-  {
-    // wait for data available
-  } 
   cmd = Serial.readString();
   cmd.trim();
   Serial.println(cmd);
@@ -303,6 +410,10 @@ void loop()
   else if (cmd == "3") // Case 3: close the door
   {
     closeDoor();
+  }
+    else if (cmd == "4") // Case 3: close the door
+  {
+   changeCard();
   }
   //============================================UART=========================================//
 
