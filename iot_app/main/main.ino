@@ -30,7 +30,7 @@ int ble_disconnect = 0;
 float txValue = 0.0; 
 
 // Password for the door
-char pass_correct[] = "Iot123";
+char pass_correct[] = "Iot2022";
 char passwordTemp[] = "";
 char txString[8];
 String cmd;
@@ -158,7 +158,7 @@ void getPassToOPenDoor()
     Serial.println(passwordTemp);
     if (strcmp(pass_correct, passwordTemp))
     {
-      Serial.print("\t\t\tWRONG PASSWORD: ");
+      Serial.print("\t\tWRONG PASSWORD: ");
       Serial.println(i);
       if (i < 3)
       {
@@ -167,13 +167,13 @@ void getPassToOPenDoor()
       else
       {
         Serial.println("=================================================================");
-        Serial.println("\t\t\tWARNING!!!");
+        Serial.println("\t\tWARNING!!!");
       }
     }
     else
     {
       digitalWrite(LED, HIGH);
-      Serial.println("\t\t\tYOUR DOOR IS OPENED");
+      Serial.println("\t\tYOUR DOOR IS OPENED");
       break;
     }
   }
@@ -199,7 +199,7 @@ void changePass()
     Serial.println(cmd);
     if (strcmp(passwordTemp, pass_correct))
     {
-      Serial.print("\t\t\tWRONG PASSWORD: ");
+      Serial.print("\t\tWRONG PASSWORD: ");
       Serial.println(i);
       if (i < 3)
       {
@@ -209,7 +209,7 @@ void changePass()
       else
       {
         Serial.println("=================================================================");
-        Serial.println("\t\t\tWARNING!!!");
+        Serial.println("\t\tWARNING!!!");
       }
     }
     else
@@ -238,7 +238,7 @@ void closeDoor()
   Serial.println();
   Serial.println("=================================================================");
   digitalWrite(LED, LOW);
-  Serial.println("\t\t\tYOUR DOOR IS CLOSED");
+  Serial.println("\t\tYOUR DOOR IS CLOSED");
   dashboard();
 }
 
@@ -252,8 +252,8 @@ void runRFID() {
       // print UID in Serial Monitor in the hex format
       Serial.println();
       Serial.println("=================================================================");
-      Serial.println("\t\t\tREVEIVED CARD");
-      Serial.print("\t\t\tID:");
+      Serial.println("\t\tREVEIVED CARD");
+      Serial.print("\t\tID:");
       for (int i = 0; i < rfid.uid.size; i++) {
         Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
         Serial.print(rfid.uid.uidByte[i], HEX);
@@ -264,12 +264,12 @@ void runRFID() {
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
 
       if (rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3]) {
-        Serial.println("\t\t\tVERIFY SUCCESS! OPEN DOOR");
+        Serial.println("\t\tVERIFY SUCCESS! OPEN DOOR");
         digitalWrite(LED, HIGH);
         delay(5000);
-        Serial.println("\t\t\tCLOSED DOOR");
+        Serial.println("\t\tCLOSED DOOR");
       } else {
-        Serial.println("\t\t\tVERIFY FAILED! CAN'T OPEN DOOR");
+        Serial.println("\t\tVERIFY FAILED! CAN'T OPEN DOOR");
       }
       digitalWrite(LED, LOW);
     }
@@ -283,14 +283,14 @@ void runRFID() {
 void changeCard() {
   Serial.println();
   Serial.println("=================================================================");
-  Serial.println("\t\t\tSCANNING TO VERIFY CORRECT CARD ........");
+  Serial.println("\t\tSCANNING TO VERIFY CORRECT CARD ........");
   have_change = true;
   while(have_change){
      if (rfid.PICC_IsNewCardPresent()) {  // new tag is available
     if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
 
       // print UID in Serial Monitor in the hex format
-      Serial.print("\t\t\tID:");
+      Serial.print("\t\tID:");
       for (int i = 0; i < rfid.uid.size; i++) {
         Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
         Serial.print(rfid.uid.uidByte[i], HEX);
@@ -301,10 +301,10 @@ void changeCard() {
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
 
       if (rfid.uid.uidByte[0] == nuidPICC[0] && rfid.uid.uidByte[1] == nuidPICC[1] && rfid.uid.uidByte[2] == nuidPICC[2] && rfid.uid.uidByte[3] == nuidPICC[3]) {
-        Serial.println("\t\t\tCORRECT CARD! CHANGING TO NEW CARD ........");
+        Serial.println("\t\tCORRECT CARD! CHANGING TO NEW CARD ........");
         have_scan = true;
       } else {
-        Serial.println("\t\t\tINCORRECT CARD! CAN'T CHANGE TO NEW CARD !!!");
+        Serial.println("\t\tINCORRECT CARD! CAN'T CHANGE TO NEW CARD !!!");
         have_scan = false;
       }
       have_change = false;
@@ -318,7 +318,7 @@ void changeCard() {
     if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
 
       // print UID in Serial Monitor in the hex format
-      Serial.print("\t\t\tID:");
+      Serial.print("\t\tID:");
       for (int i = 0; i < rfid.uid.size; i++) {
         Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
         Serial.print(rfid.uid.uidByte[i], HEX);
@@ -328,7 +328,7 @@ void changeCard() {
 
       rfid.PICC_HaltA();       // halt PICC
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
-      Serial.println("\t\t\tDONE CHANGE NEW CARD ***");  
+      Serial.println("\t\tDONE CHANGE NEW CARD ***");  
       have_scan = false;    
     }
   }
@@ -348,7 +348,7 @@ void setup()
   rfid.PCD_Init();  
 
   // Create the BLE Device
-  BLEDevice::init("ESP32"); // Give it a name
+  BLEDevice::init("ESP32_OpenDoor"); // Give it a name
 
   // Create the BLE Server
   pServer = BLEDevice::createServer();
@@ -445,6 +445,8 @@ void loop()
     Serial.println();
     Serial.println("=================================================================");
     Serial.println("\t\tCONNECTED DEVICE WITH APP BY BLE !!!");
+    delay(2000);
+    dashboard();
   }
 
   if(ble_disconnect == 1)
@@ -453,6 +455,8 @@ void loop()
     Serial.println("=================================================================");
     Serial.println("\t\tDISCONNECTED DEVICE WITH APP BY BLE !!!");
     ble_disconnect++;
+    delay(2000);
+    dashboard();
   }
 
   // BLE disconnecting
