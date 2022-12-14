@@ -24,6 +24,8 @@ BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
+int ble_connected = 0;
+int ble_disconnect = 0;
 // 0.0 is incorrect, 1.1 is correct
 float txValue = 0.0; 
 
@@ -382,7 +384,6 @@ void setup()
 
   // Start advertising
   pServer->getAdvertising()->start();
-  Serial.println("Waiting a client connection to notify...");
   dashboard();
 }
 
@@ -434,8 +435,25 @@ void loop()
   if (deviceConnected)
   {
     // TO DO
+    ble_connected++;
+    ble_disconnect = 0;
   }
   delay(1000);
+
+  if(ble_connected == 1)
+  {
+    Serial.println();
+    Serial.println("=================================================================");
+    Serial.println("\t\tCONNECTED DEVICE WITH APP BY BLE !!!");
+  }
+
+  if(ble_disconnect == 1)
+  {
+    Serial.println();
+    Serial.println("=================================================================");
+    Serial.println("\t\tDISCONNECTED DEVICE WITH APP BY BLE !!!");
+    ble_disconnect++;
+  }
 
   // BLE disconnecting
   if (!deviceConnected && oldDeviceConnected)
@@ -443,6 +461,8 @@ void loop()
     // restart advertising
     pServer->startAdvertising(); 
     oldDeviceConnected = deviceConnected;
+    ble_connected = 0;
+    ble_disconnect++;
   }
 
   // BLE connecting
