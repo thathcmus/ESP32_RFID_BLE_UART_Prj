@@ -122,6 +122,8 @@ class MyCallbacks : public BLECharacteristicCallbacks
         pCharacteristic->setValue(txString); // Sending  message
         pCharacteristic->notify();           // Send the value to the app!
         digitalWrite(LED, HIGH);
+        delay(5000);
+        digitalWrite(LED, LOW);
       }
       else
       {
