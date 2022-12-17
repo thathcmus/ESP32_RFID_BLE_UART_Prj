@@ -117,6 +117,23 @@ class MyCallbacks : public BLECharacteristicCallbacks
         pass_correct[i] = char_array[i];
         pass_correct[i + 1] = NULL;
       }
+      String rString = String(pass_correct);
+      EEPROM.writeString(eepromAddr1, rString);
+      EEPROM.commit();
+
+      rString = EEPROM.readString(eepromAddr1);
+      char_array[rString.length()];
+      for (int i = 0; i < rString.length(); i++)
+      {
+        char_array[i] = rString[i];
+      }
+        char_array[rString.length()] = NULL;
+
+      for (int i = 0; char_array[i] != NULL; i++)
+      {
+        pass_correct[i] = char_array[i];
+        pass_correct[i + 1] = NULL;
+      }
     }
 
     // CHARACTERISTIC_UUID_PASS
@@ -230,26 +247,9 @@ void changePass()
       strcpy(pass_correct, passwordTemp);
       String rString = String(pass_correct);
 
-      EEPROM.writeString(eepromAddr1, rString);
-      EEPROM.commit();
+      store_pass(rString);
+      load_pass();
 
-      rString = EEPROM.readString(eepromAddr1);
-      Serial.println("Read from EEPROM");
-      Serial.print("Str:");
-      Serial.println(rString); 
-
-      char char_array[rString.length()];
-      for (int i = 0; i < rString.length(); i++)
-      {
-        char_array[i] = rString[i];
-      }
-        char_array[rString.length()] = NULL;
-
-      for (int i = 0; char_array[i] != NULL; i++)
-      {
-        pass_correct[i] = char_array[i];
-        pass_correct[i + 1] = NULL;
-      }
       Serial.println("\t\tCHANGE YOUR NEW PASSWORD SUCCESS");
       break;
     }
@@ -353,21 +353,8 @@ void changeCard() {
       }
       Serial.println();
 
-      EEPROM.write(eepromAddr2, nuidPICC[0]);
-      EEPROM.write(eepromAddr3, nuidPICC[1]);
-      EEPROM.write(eepromAddr4, nuidPICC[2]);
-      EEPROM.write(eepromAddr5, nuidPICC[3]);
-      EEPROM.commit();
-
-      byte b[4];
-      b[0] = EEPROM.read(eepromAddr2);
-      b[1] = EEPROM.read(eepromAddr3);
-      b[2] = EEPROM.read(eepromAddr4);
-      b[3] = EEPROM.read(eepromAddr5);
-      for (int i = 0; i < 4; i++)
-      {
-        nuidPICC[i] = b[i];
-      }
+      store_id();
+      load_id();
 
       rfid.PICC_HaltA();       // halt PICC
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
@@ -379,43 +366,9 @@ void changeCard() {
   dashboard();
 }
 
-/* Set up ------------------------------------------------------------- */
-void setup()
+void load_pass()
 {
-  Serial.begin(115200);
-  EEPROM.begin(512);
-
-  // EEPROM.writeString(eepromAddr2, pass_test1);
-  // EEPROM.commit();
-  ////
-  // byte nuidPICC[4] = { 0x93, 0xAC, 0x76, 0xA3 };
-  // EEPROM.write(eepromAddr2, 0x93);
-  // EEPROM.write(eepromAddr3, 0xAC);
-  // EEPROM.write(eepromAddr4, 0x76);
-  // EEPROM.write(eepromAddr5, 0xA3);
-  // EEPROM.commit();
-
-  byte b[4];
-  Serial.print("Byte:");
-  b[0] = EEPROM.read(eepromAddr2);
-  b[1] = EEPROM.read(eepromAddr3);
-  b[2] = EEPROM.read(eepromAddr4);
-  b[3] = EEPROM.read(eepromAddr5);
-  for (int i = 0; i < 4; i++)
-  {
-    nuidPICC[i] = b[i];
-  }
-  // Serial.println(nuidPICC[0]);
-  // Serial.println(nuidPICC[1]);
-  // Serial.println(nuidPICC[2]);
-  // Serial.println(nuidPICC[3]);
-  ////
-
   String rString = EEPROM.readString(eepromAddr1);
-  Serial.println("Read from EEPROM");
-  Serial.print("Str:");
-  Serial.println(rString); 
-
   char char_array[rString.length()];
   for (int i = 0; i < rString.length(); i++)
   {
@@ -428,6 +381,43 @@ void setup()
     pass_correct[i] = char_array[i];
     pass_correct[i + 1] = NULL;
   }
+}
+
+void store_pass(String stringData)
+{
+  EEPROM.writeString(eepromAddr1, stringData);
+  EEPROM.commit();
+}
+
+void load_id()
+{
+  byte b[4];
+  b[0] = EEPROM.read(eepromAddr2);
+  b[1] = EEPROM.read(eepromAddr3);
+  b[2] = EEPROM.read(eepromAddr4);
+  b[3] = EEPROM.read(eepromAddr5);
+  for (int i = 0; i < 4; i++)
+  {
+    nuidPICC[i] = b[i];
+  }
+}
+
+void store_id()
+{
+  EEPROM.write(eepromAddr2, nuidPICC[0]);
+  EEPROM.write(eepromAddr3, nuidPICC[1]);
+  EEPROM.write(eepromAddr4, nuidPICC[2]);
+  EEPROM.write(eepromAddr5, nuidPICC[3]);
+  EEPROM.commit();
+}
+/* Set up ------------------------------------------------------------- */
+void setup()
+{
+  Serial.begin(115200);
+  EEPROM.begin(512);
+
+  load_id();
+  load_pass();
  
   pinMode(LED, OUTPUT);
 
