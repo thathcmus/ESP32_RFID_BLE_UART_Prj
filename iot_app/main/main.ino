@@ -6,6 +6,7 @@
 #include <BLE2902.h>
 #include <SPI.h>     
 #include "MFRC522.h"  
+#include <EEPROM.h>
 
 /* Private defines ---------------------------------------------------- */
 #define SERVICE_UUID                        "844fc6d6-1c7e-461a-abb9-3a9a9fdd597e" 
@@ -31,6 +32,8 @@ float txValue = 0.0;
 
 // Password for the door
 char pass_correct[] = "Iot2022";
+String pass_test1 = "Iot2022";
+String pass_test2 = "Iot2023";
 char passwordTemp[] = "";
 char txString[8];
 String cmd;
@@ -41,6 +44,8 @@ bool have_change = false;
 bool have_scan = false; 
 MFRC522::MIFARE_Key key;
 MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
+
+int eepromAddr1 = 0, eepromAddr2 = 10;
 
 /* Private function prototypes ---------------------------------------- */
 
@@ -144,6 +149,8 @@ class MyCallbacks : public BLECharacteristicCallbacks
  */
 void getPassToOPenDoor()
 {
+
+
   Serial.println();
   Serial.println("=================================================================");
   Serial.print("Type Your Password: ");
@@ -223,6 +230,27 @@ void changePass()
       cmd.toCharArray(passwordTemp, cmd.length() + 1);
       Serial.println(passwordTemp);
       strcpy(pass_correct, passwordTemp);
+      String rString = String(pass_correct);
+      EEPROM.writeString(eepromAddr2, rString);
+      EEPROM.commit();
+
+      rString = EEPROM.readString(eepromAddr2);
+      Serial.println("Read from EEPROM");
+      Serial.print("Str:");
+      Serial.println(rString); 
+
+      char char_array[rString.length()];
+      for (int i = 0; i < rString.length(); i++)
+      {
+        char_array[i] = rString[i];
+      }
+        char_array[rString.length()] = NULL;
+
+      for (int i = 0; char_array[i] != NULL; i++)
+      {
+        pass_correct[i] = char_array[i];
+        pass_correct[i + 1] = NULL;
+      }
       Serial.println("\t\tCHANGE YOUR NEW PASSWORD SUCCESS");
       break;
     }
@@ -340,7 +368,29 @@ void changeCard() {
 void setup()
 {
   Serial.begin(115200);
+  EEPROM.begin(512);
 
+  // EEPROM.writeString(eepromAddr2, pass_test2);
+  // EEPROM.commit();
+
+  String rString = EEPROM.readString(eepromAddr2);
+  Serial.println("Read from EEPROM");
+  Serial.print("Str:");
+  Serial.println(rString); 
+
+  char char_array[rString.length()];
+  for (int i = 0; i < rString.length(); i++)
+  {
+    char_array[i] = rString[i];
+  }
+  char_array[rString.length()] = NULL;
+
+  for (int i = 0; char_array[i] != NULL; i++)
+  {
+    pass_correct[i] = char_array[i];
+    pass_correct[i + 1] = NULL;
+  }
+ 
   pinMode(LED, OUTPUT);
 
   // Init RFID with SPI
