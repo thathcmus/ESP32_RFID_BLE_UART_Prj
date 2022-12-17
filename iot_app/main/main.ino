@@ -39,13 +39,13 @@ char txString[8];
 String cmd;
 
 // RFID
-byte nuidPICC[4] = { 0x93, 0xAC, 0x76, 0xA3 };
+byte nuidPICC[4];
 bool have_change = false;
 bool have_scan = false; 
 MFRC522::MIFARE_Key key;
 MFRC522 rfid = MFRC522(SS_PIN, RST_PIN);
 
-int eepromAddr1 = 0, eepromAddr2 = 10;
+int eepromAddr1 = 0, eepromAddr2 = 10, eepromAddr3 = 11, eepromAddr4 = 12, eepromAddr5 = 13;
 
 /* Private function prototypes ---------------------------------------- */
 
@@ -149,8 +149,6 @@ class MyCallbacks : public BLECharacteristicCallbacks
  */
 void getPassToOPenDoor()
 {
-
-
   Serial.println();
   Serial.println("=================================================================");
   Serial.print("Type Your Password: ");
@@ -231,10 +229,11 @@ void changePass()
       Serial.println(passwordTemp);
       strcpy(pass_correct, passwordTemp);
       String rString = String(pass_correct);
-      EEPROM.writeString(eepromAddr2, rString);
+
+      EEPROM.writeString(eepromAddr1, rString);
       EEPROM.commit();
 
-      rString = EEPROM.readString(eepromAddr2);
+      rString = EEPROM.readString(eepromAddr1);
       Serial.println("Read from EEPROM");
       Serial.print("Str:");
       Serial.println(rString); 
@@ -354,6 +353,22 @@ void changeCard() {
       }
       Serial.println();
 
+      EEPROM.write(eepromAddr2, nuidPICC[0]);
+      EEPROM.write(eepromAddr3, nuidPICC[1]);
+      EEPROM.write(eepromAddr4, nuidPICC[2]);
+      EEPROM.write(eepromAddr5, nuidPICC[3]);
+      EEPROM.commit();
+
+      byte b[4];
+      b[0] = EEPROM.read(eepromAddr2);
+      b[1] = EEPROM.read(eepromAddr3);
+      b[2] = EEPROM.read(eepromAddr4);
+      b[3] = EEPROM.read(eepromAddr5);
+      for (int i = 0; i < 4; i++)
+      {
+        nuidPICC[i] = b[i];
+      }
+
       rfid.PICC_HaltA();       // halt PICC
       rfid.PCD_StopCrypto1();  // stop encryption on PCD
       Serial.println("\t\tDONE CHANGE NEW CARD ***");  
@@ -370,10 +385,33 @@ void setup()
   Serial.begin(115200);
   EEPROM.begin(512);
 
-  // EEPROM.writeString(eepromAddr2, pass_test2);
+  // EEPROM.writeString(eepromAddr2, pass_test1);
+  // EEPROM.commit();
+  ////
+  // byte nuidPICC[4] = { 0x93, 0xAC, 0x76, 0xA3 };
+  // EEPROM.write(eepromAddr2, 0x93);
+  // EEPROM.write(eepromAddr3, 0xAC);
+  // EEPROM.write(eepromAddr4, 0x76);
+  // EEPROM.write(eepromAddr5, 0xA3);
   // EEPROM.commit();
 
-  String rString = EEPROM.readString(eepromAddr2);
+  byte b[4];
+  Serial.print("Byte:");
+  b[0] = EEPROM.read(eepromAddr2);
+  b[1] = EEPROM.read(eepromAddr3);
+  b[2] = EEPROM.read(eepromAddr4);
+  b[3] = EEPROM.read(eepromAddr5);
+  for (int i = 0; i < 4; i++)
+  {
+    nuidPICC[i] = b[i];
+  }
+  // Serial.println(nuidPICC[0]);
+  // Serial.println(nuidPICC[1]);
+  // Serial.println(nuidPICC[2]);
+  // Serial.println(nuidPICC[3]);
+  ////
+
+  String rString = EEPROM.readString(eepromAddr1);
   Serial.println("Read from EEPROM");
   Serial.print("Str:");
   Serial.println(rString); 
